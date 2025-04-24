@@ -1,0 +1,38 @@
+name: expense_tracker
+description: "An advanced expense tracking app with charts"
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+  flutter_charts: ^0.5.2
+  intl: ^0.20.2
+  provider: ^6.0.5
+  flutter_svg: ^2.0.7
+  syncfusion_flutter_charts: ^29.1.38
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.1.1+1
+
+dev_dependencies:
+  hive_generator: ^2.0.1
+  build_runner: ^2.3.3
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/icons/
+    
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/icons/expense_tracker_icon.png"
