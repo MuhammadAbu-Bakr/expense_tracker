@@ -1,8 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:expense_tracker/screens/home_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:expense_tracker/providers/transaction_provider.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:expense_tracker/models/transaction.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
+
+  Hive.registerAdapter(TransactionAdapter());
+
+  final transactionProvider = TransactionProvider();
+  await transactionProvider.initialize();
+
+  runApp(
+    ChangeNotifierProvider.value(
+      value: transactionProvider,
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -40,7 +57,7 @@ class SplashScreen extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/icons/expense_tracker_icon.png',
+              'assets/icons/icon.jpg',
               width: 150,
               height: 150,
             ),

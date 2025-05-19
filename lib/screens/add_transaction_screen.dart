@@ -6,7 +6,7 @@ import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
 
 class AddTransactionScreen extends StatefulWidget {
-  const AddTransactionScreen({super.key}); 
+  const AddTransactionScreen({super.key});
 
   @override
   State<AddTransactionScreen> createState() => _AddTransactionScreenState();
@@ -202,7 +202,7 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
   void _submitForm() {
     if (_formKey.currentState!.validate()) {
       final transaction = Transaction(
-        id: DateTime.now().toString(),
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
         title: _titleController.text,
         amount: double.parse(_amountController.text),
         date: _selectedDate,
@@ -210,7 +210,8 @@ class _AddTransactionScreenState extends State<AddTransactionScreen> {
         category: _selectedCategory,
       );
 
-      Provider.of<TransactionProvider>(context, listen: false).addTransaction(transaction);
+      Provider.of<TransactionProvider>(context, listen: false)
+          .addTransaction(transaction);
 
       Navigator.pop(context);
     }
