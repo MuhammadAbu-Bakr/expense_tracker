@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/settings_provider.dart';
 import 'add_transaction_screen.dart';
+import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -19,10 +21,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final transactionProvider = Provider.of<TransactionProvider>(context);
-    final monthlyTransactions = transactionProvider.getTransactionsForMonth(_selectedMonth);
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final monthlyTransactions =
+        transactionProvider.getTransactionsForMonth(_selectedMonth);
 
-    final expenseTransactions = monthlyTransactions.where((t) => t.isExpense).toList();
-    final incomeTransactions = monthlyTransactions.where((t) => !t.isExpense).toList();
+    final expenseTransactions =
+        monthlyTransactions.where((t) => t.isExpense).toList();
+    final incomeTransactions =
+        monthlyTransactions.where((t) => !t.isExpense).toList();
 
     final categoryData = _getCategoryData(expenseTransactions);
 
@@ -34,17 +40,24 @@ class _HomeScreenState extends State<HomeScreen> {
             icon: const Icon(Icons.calendar_today),
             onPressed: () => _selectMonth(context),
           ),
+          IconButton(
+            icon: const Icon(Icons.settings),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const SettingsScreen()),
+            ),
+          ),
         ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            _buildSummaryCards(transactionProvider),
+            _buildSummaryCards(transactionProvider, settingsProvider),
             const SizedBox(height: 24),
-            _buildChartSection(categoryData),
+            _buildChartSection(categoryData, settingsProvider),
             const SizedBox(height: 24),
-            _buildRecentTransactions(expenseTransactions),
+            _buildRecentTransactions(expenseTransactions, settingsProvider),
           ],
         ),
       ),
@@ -55,7 +68,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildSummaryCards(TransactionProvider provider) {
+  Widget _buildSummaryCards(
+      TransactionProvider provider, SettingsProvider settings) {
     return Row(
       children: [
         Expanded(
@@ -64,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
             amount: provider.totalIncome,
             color: Colors.green,
             icon: Icons.arrow_upward,
+            settings: settings,
           ),
         ),
         const SizedBox(width: 16),
@@ -73,13 +88,15 @@ class _HomeScreenState extends State<HomeScreen> {
             amount: provider.totalExpenses,
             color: Colors.red,
             icon: Icons.arrow_downward,
+            settings: settings,
           ),
         ),
       ],
     ).animate().fadeIn(delay: 100.ms);
   }
 
-  Widget _buildChartSection(Map<String, double> categoryData) {
+  Widget _buildChartSection(
+      Map<String, double> categoryData, SettingsProvider settings) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -110,12 +127,14 @@ class _HomeScreenState extends State<HomeScreen> {
                     dataSource: categoryData.entries.toList(),
                     xValueMapper: (entry, _) => entry.key,
                     yValueMapper: (entry, _) => entry.value,
-                    dataLabelMapper: (entry, _) => '${entry.key}\n${entry.value.toStringAsFixed(2)}',
+                    dataLabelMapper: (entry, _) =>
+                        '${entry.key}\n${settings.formatAmount(entry.value)}',
                     dataLabelSettings: const DataLabelSettings(
                       isVisible: true,
                       labelPosition: ChartDataLabelPosition.inside,
                     ),
-                    pointColorMapper: (entry, _) => _getCategoryColor(entry.key),
+                    pointColorMapper: (entry, _) =>
+                        _getCategoryColor(entry.key),
                   ),
                 ],
               ),
@@ -126,7 +145,8 @@ class _HomeScreenState extends State<HomeScreen> {
     ).animate().slideX(begin: 0.1);
   }
 
-  Widget _buildRecentTransactions(List<Transaction> transactions) {
+  Widget _buildRecentTransactions(
+      List<Transaction> transactions, SettingsProvider settings) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -147,7 +167,10 @@ class _HomeScreenState extends State<HomeScreen> {
             if (transactions.isEmpty)
               const Center(child: Text('No transactions yet'))
             else
-              ...transactions.take(5).map((t) => _TransactionTile(transaction: t)),
+              ...transactions.take(5).map((t) => _TransactionTile(
+                    transaction: t,
+                    settings: settings,
+                  )),
           ],
         ),
       ),
@@ -209,12 +232,14 @@ class _SummaryCard extends StatelessWidget {
   final double amount;
   final Color color;
   final IconData icon;
+  final SettingsProvider settings;
 
   const _SummaryCard({
     required this.title,
     required this.amount,
     required this.color,
     required this.icon,
+    required this.settings,
   });
 
   @override
@@ -231,26 +256,20 @@ class _SummaryCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color),
-                ),
-                const Spacer(),
+                Icon(icon, color: color),
+                const SizedBox(width: 8),
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.grey[600],
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.bold,
                       ),
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             Text(
-              '\$${amount.toStringAsFixed(2)}',
+              settings.formatAmount(amount),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
@@ -264,55 +283,32 @@ class _SummaryCard extends StatelessWidget {
 
 class _TransactionTile extends StatelessWidget {
   final Transaction transaction;
+  final SettingsProvider settings;
 
-  const _TransactionTile({required this.transaction});
+  const _TransactionTile({
+    required this.transaction,
+    required this.settings,
+  });
 
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: _getCategoryColor(transaction.category).withOpacity(0.2),
-          shape: BoxShape.circle,
-        ),
+      leading: CircleAvatar(
+        backgroundColor: transaction.isExpense ? Colors.red : Colors.green,
         child: Icon(
-          _getCategoryIcon(transaction.category),
-          color: _getCategoryColor(transaction.category),
+          transaction.isExpense ? Icons.arrow_downward : Icons.arrow_upward,
+          color: Colors.white,
         ),
       ),
       title: Text(transaction.title),
-      subtitle: Text(
-        '${transaction.date.day}/${transaction.date.month}/${transaction.date.year}',
-      ),
+      subtitle: Text(transaction.category),
       trailing: Text(
-        '-\$${transaction.amount.toStringAsFixed(2)}',
-        style: const TextStyle(color: Colors.red),
+        settings.formatAmount(transaction.amount),
+        style: TextStyle(
+          color: transaction.isExpense ? Colors.red : Colors.green,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
-  }
-
-  IconData _getCategoryIcon(String category) {
-    final icons = {
-      'Food': Icons.restaurant,
-      'Transport': Icons.directions_car,
-      'Shopping': Icons.shopping_bag,
-      'Entertainment': Icons.movie,
-      'Bills': Icons.receipt,
-      'Others': Icons.more_horiz,
-    };
-    return icons[category] ?? Icons.category;
-  }
-
-  Color _getCategoryColor(String category) {
-    final colors = {
-      'Food': Colors.amber,
-      'Transport': Colors.blue,
-      'Shopping': Colors.purple,
-      'Entertainment': Colors.pink,
-      'Bills': Colors.orange,
-      'Others': Colors.grey,
-    };
-    return colors[category] ?? Colors.teal;
   }
 }
